@@ -1,0 +1,850 @@
+;;; -*-Scheme-*-
+;(symtrace #\y)
+
+;;; Sec 3.2
+port? ;- primitive (mentioned as predicate, but not as a procedure in 6.6)
+
+;;; Sec 6.1
+eqv?
+eq?
+(define (equal? obj1 obj2)
+  (or (eqv? obj1 obj2)
+      (and (pair? obj1) (pair? obj2)
+	   (equal? (car obj1) (car obj2))
+	   (equal? (cdr obj1) (cdr obj2)) )
+      (and (string? obj1) (string? obj2)
+	   (string=? obj1 obj2) )
+      (and (vector? obj1) (vector? obj2)
+	   (= (vector-length obj1) (vector-length obj2))
+	   (%vector-prefix-equal? obj1 obj2 (vector-length obj1)) )))
+(define (%vector-prefix-equal? obj1 obj2 n)
+  (or (= 0 n)
+      (and (equal? (vector-ref obj1 (- n 1))
+		   (vector-ref obj2 (- n 1)) )
+	   (%vector-prefix-equal? obj1 obj2 (- n 1)) )))
+
+;;; Sec 6.2.5
+number?
+(define complex? number?)
+(define real? rational?)
+rational?
+integer?
+exact?
+inexact?
+=
+<
+>
+<=
+>=
+(define (zero? x) (= x 0))
+(define (positive? x) (> x 0))
+(define (negative? x) (< x 0))
+odd?
+(define (even? x) (not (odd? x)))
+(define max #f)
+(define min #f)
+((lambda ()
+   (define (ix? lst)
+     (if (null? lst)
+         #f
+         (or (inexact? (car lst))
+             (ix? (cdr lst)) )))
+   (define (fx x y lst)
+     (if (or (inexact? y) (ix? lst))
+         (exact->inexact x)
+         x ))
+   (define (m o x lst)
+     (cond ((null? lst) x)
+           ((o (car lst) x) (m o (car lst) (cdr lst)))
+           (else (m o x (cdr lst))) ))
+   (set! min (lambda (x . lst) (fx (m < x lst) x lst)))
+   (set! max (lambda (x . lst) (fx (m > x lst) x lst))) ))
++
+*
+(define (%* a b . lst)
+  (* (* a b) (apply * lst)) )
+-
+(define (%- a . lst) ;; does not need to handle unary case
+  (+ a (* -1 (apply + lst))) )
+
+/
+(define (%/ a b . lst)
+  (if (null? lst)
+      (error "division fault")
+      (/ a (apply * b lst)) ))
+
+;(define (abs x) (if (positive? x) x (- x)))
+(define abs magnitude)
+quotient
+remainder
+modulo
+(define gcd
+  ((lambda ()
+     (define (gcd2 a b)
+       (if (zero? b)
+	   a
+	   (gcd2 b (remainder a b)) ))
+     (define (gcdn lst)
+       (cond ((null? lst) 0)
+	     ((null? (cdr lst)) (abs (quotient (car lst) 1)))
+	     (else (gcd2 (abs (car lst)) (gcdn (cdr lst)))) ))
+     (lambda lst (gcdn lst)) )))
+(define lcm
+  ((lambda ()
+     (define (lcmn lst)
+       (cond ((null? lst) 1)
+	     (else (lcm2 (abs (car lst)) (lcmn (cdr lst)))) ))
+     (define (lcm2 a b) (quotient (* a b) (gcd a b)))
+     (lambda lst (lcmn lst)) )))
+numerator
+denominator
+(define (floor x)
+  (define n (truncate x))
+  (if (<= n x) n (- n 1)) )
+(define (ceiling x)
+  (define n (truncate x))
+  (if (>= n x) n (+ n 1)) )
+(define (truncate x)
+  (quotient (numerator x) (denominator x)) )
+(define (round x)
+  (define n (truncate x))
+  ((lambda (delta2)
+     (cond ((< delta2 -1) (- n 1))
+           ((> delta2 1) (+ n 1))
+           ((or (even? n) (< (abs delta2) 1)) n)
+           ((< delta2 0) (- n 1))
+           (else (+ n 1)) ))
+   (* 2 (- x n)) ))
+(define (rationalize x eps)
+  (define (winner a) (and (<= (abs (- x a)) eps) a))
+  (define (rat s p q op oq)
+    (define (ts /s) (tsk /s (truncate /s)))
+    (define (tsk /s k)
+      (rat (- /s k) (+ (* k p) op) (+ (* k q) oq) p q) )
+    (or (winner (/ p q)) (ts (/ s))) )
+  (cond
+   ((not (and (real? x) (real? eps) (>= eps 0))) (error 'rationalize x eps))
+   ((or (inexact? x) (inexact? eps))
+    (exact->inexact (rationalize (inexact->exact x) (inexact->exact eps))) )
+   ((negative? x) (- (rationalize (- x) eps)))
+   ((>= (+ eps eps) 1) (ceiling (max 0 (- x eps))))
+   (else (rat x 0 1 1 0)) ))
+exp
+(define (%exp z)
+  (* (exp (real-part z)) (make-polar 1 (imag-part z))) )
+log
+(define (%log z)
+  (make-rectangular (log (magnitude z)) (angle z)) )
+sin
+cos
+tan
+asin
+acos
+atan
+(define %sin #f)
+(define %cos #f)
+(define %tan #f)
+(define %asin #f)
+(define %acos #f)
+(define %atan #f)
+((lambda ()
+  (define i (make-rectangular 0 1))
+  (define pi/2 (/ (angle -1) 2))
+  (define (s eiz) (/ (- eiz (/ eiz)) 2 i))
+  (define (c eiz) (/ (+ eiz (/ eiz)) 2))
+  (define (t eiz) (/ (s eiz) (c eiz)))
+  (define (ei z) (exp (* i z)))
+  (define (as z)
+    (* -1 i (log (+ (* i z) (sqrt (- 1 (* z z))) ))))
+  (define (ac z) (- pi/2 (as z)) )
+  (define (at z) (/ (- (log (+ 1 (* i z))) (log (- 1 (* i z)))) 2 i))
+  (set! %sin (lambda (z) (s (ei z))))
+  (set! %cos (lambda (z) (c (ei z))))
+  (set! %tan (lambda (z) (t (ei z))))
+  (set! %asin as)
+  (set! %acos ac)
+  (set! %atan at)
+))
+sqrt
+(define (%sqrt z)
+  (cond ((and (real? z) (negative? z))
+	 (make-rectangular 0 (sqrt (- z))) )
+	(else (expt z (/ 2))) ))
+(define (expt z a)
+  (cond ((and (exact? a) (integer? a))
+         ((if (>= a 0) * /) (%kexpt z (abs a) 1)) )
+        ((not (eq? (exact? z) (exact? a)))
+         (expt (exact->inexact z) (exact->inexact a)) )
+        ((zero? z) (if (zero? a) (+ a 1) (* 0 z))) ; get right exactness
+        (else (exp (* a (log z)))) ))
+(define (%kexpt z k prod)
+  (cond ((zero? k) prod)
+        ((= k 1) (* z prod)) ; save that one last square
+        ((odd? k) (%kexpt (* z z) (/ (- k 1) 2) (* z prod)))
+        (else (%kexpt (* z z) (/ k 2) prod)) ))
+make-rectangular
+(define (make-polar mag arg)
+  (make-rectangular (* mag (cos arg))
+                    (* mag (sin arg)) ))
+real-part
+imag-part
+magnitude
+(define (%UNUSED%magnitude z)
+  (cond ((real? z) (abs z))
+        ((zero? (real-part z)) (abs (imag-part z)))
+        (else (sqrt (+ (* (real-part z) (real-part z))
+                       (* (imag-part z) (imag-part z)) )))))
+angle
+exact->inexact
+inexact->exact
+
+;;; Sec 6.2.6
+number->string
+(define %number->string
+  ((lambda ()
+     (define (dispatch z radix)
+       (cond ((integer? z)
+	      (str/int (if (negative? z) "-" "")
+		       (abs (inexact->exact z))
+		       radix
+		       (if (exact? z) "" ".") ))
+	     ((and (rational? z) (exact? z))
+	      (string-append (number->string (numerator z) radix)
+			     "/"
+			     (number->string (denominator z) radix) ))
+	     ((complex? z)
+	      (compose-complex (number->string (real-part z) radix)
+			     (number->string (imag-part z) radix) ))
+	     (else "---------NYI----------") ))
+     (define (compose-complex re-str im-str)
+       (if (eqv? (string-ref im-str 0) #\-)
+	   (string-append re-str im-str "i")
+	   (string-append re-str "+" im-str "i") ))
+     (define (str/int prefix k radix suffix)
+       (string-append prefix
+		      (list->string
+		       (map
+			(lambda (j) (string-ref "0123456789abcdefghijklmnopqrstuvwxyz" j))
+			(if (zero? k)
+			    '(0)
+			    (reverse (%radix-expand k radix)) )))
+		      suffix))
+     dispatch )))
+string->number
+(define %string->number #f)
+((lambda () ; FIXTHIS - we permit digits after # signs, and should not.
+   (define (match? char s)
+     (and (pair? s) (char-ci=? (car s) char)) )
+   (define (lookahead? char s)
+     (cond ((null? s) #f)
+	   ((match? char s) #t)
+	   ((char-numeric? (car s)) (lookahead? char (cdr s)))
+	   ((char-alphabetic? (car s)) (lookahead? char (cdr s)))
+	   (else #f) ))
+   (define (num r s)
+     (cond ((null? s) #f)
+	   ((match? #\# s) (num-h r (cdr s)))
+           ((xmark? r s) (post exact->inexact (complex r (unhash s))))
+	   (else (complex r s)) ))
+   (define (num-h r s)
+     (cond ((null? s) #f)
+	   ((match? #\i s) (post exact->inexact (numro r (cdr s))))
+	   ((match? #\e s) (post inexact->exact (numro r (cdr s))))
+	   ((match? #\b s) (numxo 2 (cdr s)))
+	   ((match? #\o s) (numxo 8 (cdr s)))
+	   ((match? #\d s) (numxo 10 (cdr s)))
+	   ((match? #\x s) (numxo 16 (cdr s)))
+	   (else #f) ))
+   (define (numxo r s)
+     (cond ((null? s) #f)
+	   ((match? #\# s) (numxo-h r (cdr s)))
+           ((xmark? r s) (post exact->inexact (complex r (unhash s))))
+	   (else (complex r s)) ))
+   (define (numxo-h r s)
+     (cond ((null? s) #f)
+	   ((match? #\i s) (post exact->inexact (complex r (cdr s))))
+	   ((match? #\e s) (post inexact->exact (complex r (cdr s))))
+	   (else #f) ))
+   (define (numro r s)
+     (cond ((null? s) #f)
+	   ((match? #\# s) (numro-h r (cdr s)))
+	   (else (complex r s)) ))
+   (define (numro-h r s)
+     (cond ((null? s) #f)
+	   ((match? #\b s) (complex 2 (cdr s)))
+	   ((match? #\o s) (complex 8 (cdr s)))
+	   ((match? #\d s) (complex 10 (cdr s)))
+	   ((match? #\x s) (complex 16 (cdr s)))
+	   (else #f) ))
+   (define (resultis v r s)
+     (and (null? s) (number? v) v) )
+   (define (complex r s)
+     (cond ((null? s) #f)
+	   ((itail r s))
+	   (else (real r s complextail)) ))
+   (define (itail r s)
+     (and (< r 18)
+	  (or (match? #\+ s) (match? #\- s))
+	  (match? #\i (cdr s))
+	  (null? (cddr s))
+	  (make-rectangular 0 (if (match? #\- s) -1 1)) ))
+   (define (complextail v r s)
+     (cond ((null? s) (resultis v r s))
+           ((not v) v)
+	   ((itail r s) (+ v (itail r s)))
+           ((or (match? #\+ s) (match? #\- s)) 
+	    (real r s (lambda (im r s)
+			(and (real? im) (match? #\i s) (null? (cdr s))
+                             (make-rectangular v im)) )))
+           ((match? #\@ s)
+	    (real r (cdr s) (lambda (arg r s)
+			      (and (real? arg) (null? s)
+                                   (make-polar v arg)) )))
+	   (else (resultis v r s)) ))
+   (define (real r s cont)
+     (cond ((null? s) #f)
+	   ((match? #\+ s) (ureal r (cdr s) cont))
+	   ((match? #\- s) (ureal r (cdr s) (lambda (v r s) (cont (- v) r s))))
+	   (else (ureal r s cont)) ))
+   (define (constr fn pat parse cont)
+     (lambda (v r s)
+       (cond ((match? pat s)
+	      (parse r (cdr s) (lambda (w r s) (cont (fn v w) r s))) )
+	     (else #f) )))
+   (define (ureal r s cont)
+     (cond ((lookahead? #\/ s) (uint r s (constr / #\/ uint cont)))
+	   ((and (= r 10) (or (digit 10 s) (match? #\. s)) (dechead? s))
+	    (decimal s cont))
+	   (else (uint r s cont)) ))
+   (define decimalmarks (string->list ".eEsSfFdDlL"))
+   (define (xmark? r s)
+     (or (memv #\# s) (and (= 10 r) (x10mark? s))) )
+   (define (x10mark? s)
+     (and (pair? s) (or (memv (car s) decimalmarks) (x10mark? (cdr s)))) )
+   (define (unhash s) (map (lambda (x) (if (eqv? #\# x) #\0 x)) s))
+   (define (dechead? s)
+     (and (pair? s)
+	  (or (and (digit 10 s) (dechead? (cdr s)))
+	      (memv (car s) decimalmarks) )))
+   (define (decimal s cont)
+     (define (finish v r s)
+       (cond ((match? #\. s)
+	      (decimalfrac v 0 (digit 10 (cdr s)) (cdr s) cont))
+	     (else (suffix v 0 s cont)) ))
+     (if (and (match? #\. s) (digit 10 (cdr s)))
+	 (finish 0 10 s)
+	 (uint 10 s finish) ))
+   (define (decimalfrac v e cv s cont)
+     (if cv
+         (decimalfrac (+ (* v 10) cv) (- e 1) (digit 10 (cdr s)) (cdr s) cont)
+         (suffix v e s cont) ))
+   (define (suffix v e s cont)
+     (define (finish e s) (cont (and e (* v (expt 10 e))) 10 s))
+     (cond ((null? s) (finish e s))
+           ((memv (car s) (cdr decimalmarks)) (plusint10 e (cdr s) finish)) ))
+   (define (plusint10 e s finish)
+     (cond ((match? #\+ s)
+	    (uint 10 (cdr s) (lambda (ee r s) (finish (and ee (+ e ee)) s))) )
+	   ((match? #\- s)
+	    (uint 10 (cdr s) (lambda (ee r s) (finish (and ee (- e ee)) s))) )
+	   (else (uint 10 s (lambda (ee r s) (finish (and ee (+ e ee)) s)))) ))
+   (define digits "0123456789abcdefghijklmnopqrstuvwxyz")
+   (define (digit/char r ch)
+     (and (positive? r)
+          (if (char-ci=? ch (string-ref digits (- r 1)))
+              (- r 1)
+              (digit/char (- r 1) ch) )))
+   (define (digit r s) 
+     (and (pair? s) (digit/char r (car s)) ))
+   (define (uint r s cont)
+     (define (loop v cv s)
+       (if cv
+	   (loop (+ (* v r) cv) (digit r (cdr s)) (cdr s))
+	   (cont v r s) ))
+     (and (digit r s) (loop 0 (digit r s) s)) )
+   (define (post proc z)
+     (and z (proc z)) )
+   (set! %string->number
+	 (lambda (s radix) (num radix (string->list s))) )))
+
+;;; Sec 6.3.1
+not
+boolean?
+
+;;; Sec 6.3.2
+pair?
+cons
+car
+cdr
+set-car!
+set-cdr!
+(define (caar lst) (car (car lst)))
+(define (caaar lst) (car (car (car lst))))
+(define (caaaar lst) (car (car (car (car lst)))))
+(define (caaadr lst) (car (car (car (cdr lst)))))
+(define (caadr lst) (car (car (cdr lst))))
+(define (caadar lst) (car (car (cdr (car lst)))))
+(define (caaddr lst) (car (car (cdr (cdr lst)))))
+(define (cadr lst) (car (cdr lst)))
+(define (cadar lst) (car (cdr (car lst))))
+(define (cadaar lst) (car (cdr (car (car lst)))))
+(define (cadadr lst) (car (cdr (car (cdr lst)))))
+(define (caddr lst) (car (cdr (cdr lst))))
+(define (caddar lst) (car (cdr (cdr (car lst)))))
+(define (cadddr lst) (car (cdr (cdr (cdr lst)))))
+(define (cdar lst) (cdr (car lst)))
+(define (cdaar lst) (cdr (car (car lst))))
+(define (cdaaar lst) (cdr (car (car (car lst)))))
+(define (cdaadr lst) (cdr (car (car (cdr lst)))))
+(define (cdadr lst) (cdr (car (cdr lst))))
+(define (cdadar lst) (cdr (car (cdr (car lst)))))
+(define (cdaddr lst) (cdr (car (cdr (cdr lst)))))
+(define (cddr lst) (cdr (cdr lst)))
+(define (cddar lst) (cdr (cdr (car lst))))
+(define (cddaar lst) (cdr (cdr (car (car lst)))))
+(define (cddadr lst) (cdr (cdr (car (cdr lst)))))
+(define (cdddr lst) (cdr (cdr (cdr lst))))
+(define (cdddar lst) (cdr (cdr (cdr (car lst)))))
+(define (cddddr lst) (cdr (cdr (cdr (cdr lst)))))
+null?
+list?
+list
+length
+(define (append . lists)
+  (%apply-append lists) )
+(define (%apply-append lists)
+  (if (null? lists)
+      '()
+      (if (null? (cdr lists))
+          (car lists)
+          (%append2 (car lists) (%apply-append (cdr lists))) )))
+(define (%append2 lst1 rest)
+  (if (null? lst1)
+      rest
+      (cons (car lst1) (%append2 (cdr lst1) rest)) ))
+reverse
+(define (list-tail lst k)
+  (if (> k 0)
+      (list-tail (cdr lst) (- k 1))
+      (begin (string-ref "0" k) lst) ))
+(define (list-ref lst k) (car (list-tail lst k)))
+memq
+(define (memv obj lst)
+  (if (null? lst)
+      #f
+      (if (eqv? obj (car lst))
+	  lst
+	  (memv obj (cdr lst)) )))
+(define (member obj lst)
+  (if (null? lst)
+      #f
+      (if (equal? obj (car lst))
+          lst
+          (member obj (cdr lst)) )))
+assq
+(define (assv obj alist)
+  (if (null? alist)
+      #f
+      (if (eqv? obj (caar alist))
+	  (car alist)
+	  (assv obj (cdr alist)) )))
+(define (assoc obj alist)
+  (if (null? alist)
+      #f
+      (if (equal? obj (caar alist))
+          (car alist)
+          (assoc obj (cdr alist)) )))
+
+
+;;; Sec 6.3.4
+char?
+char=?
+(define (char<? char1 char2)
+  (< (char->integer char1) (char->integer char2)) ) 
+(define (char>? char1 char2)
+  (> (char->integer char1) (char->integer char2)) )
+(define (char<=? char1 char2)
+  (<= (char->integer char1) (char->integer char2)) )
+(define (char>=? char1 char2)
+  (>= (char->integer char1) (char->integer char2)) )
+char-ci=?
+(define (%ci op)
+  (lambda (char1 char2)
+    (op (char->integer (char-downcase char1))
+	(char->integer (char-downcase char2)) )))
+(define char-ci<? (%ci <))
+(define char-ci>? (%ci >))
+(define char-ci<=? (%ci <=))
+(define char-ci>=? (%ci >=))
+char-alphabetic?
+char-numeric?
+char-whitespace?
+char-upper-case?
+char-lower-case?
+char->integer
+integer->char
+char-upcase
+char-downcase
+
+;;; Sec 6.3.5
+string?
+make-string
+(define (string . chars) (list->string chars))
+string-length
+string-ref
+string-set!
+string=?
+(define (string<? a b)
+  (define an (string-length a))
+  (define bn (string-length b))
+  (define (loop k n)
+    (if (< k n)
+	(if (char=? (string-ref a k) (string-ref b k))
+	    (loop (+ k 1) n)
+	    (char<? (string-ref a k) (string-ref b k)) )
+	(< an bn) ))
+  (loop 0 (if (< an bn) an bn)) )
+(define (string>? a b) (string<? b a))
+(define (string<=? a b) (not (string<? b a)))
+(define (string>=? a b) (not (string<? a b)))
+(define (string-ci=? a b)
+  (define n (string-length a))
+  (define (loop k)
+    (or (= k n)
+	(and (char-ci=? (string-ref a k) (string-ref b k))
+	     (loop (+ k 1)) )))
+  (and (= n (string-length b)) (loop 0)) )
+(define (string-ci<? a b)
+  (define an (string-length a))
+  (define bn (string-length b))
+  (define (loop k n)
+    (if (< k n)
+        (if (char-ci=? (string-ref a k) (string-ref b k))
+            (loop (+ k 1) n)
+            (char-ci<? (string-ref a k) (string-ref b k)) )
+        (< an bn) ))
+  (loop 0 (if (< an bn) an bn)) )
+(define (string-ci>? a b) (string-ci<? b a))
+(define (string-ci<=? a b) (not (string-ci<? b a)))
+(define (string-ci>=? a b) (not (string-ci<? a b)))
+(define (substring string start end)
+  (define new (make-string (- end start)))
+  (define (loop k)
+    (if (< k end)
+	(begin (string-set! new (- k start) (string-ref string k))
+	       (loop (+ k 1)) )
+	new ))
+  (loop start) )
+(define (string-append . strings)
+  (define new (make-string (apply + (map string-length strings))))
+  (define (loop k i n s l)
+    (cond ((< i n)
+	   (string-set! new k (string-ref s i))
+	   (loop (+ k 1) (+ i 1) n s l))
+	  ((null? l) new)
+	  (else (loop k 0 (string-length (car l)) (car l) (cdr l))) ))
+  (loop 0 0 0 "" strings) )
+string->list
+list->string
+(define (string-copy string) (string-append string))
+(define (string-fill! string char)
+  (define n (string-length string))
+  (define (loop k)
+    (cond ((< k n) (string-set! string k char) (loop (+ k 1)))) )
+  (loop 0) )
+
+;;; Sec 6.3.6
+vector?
+make-vector
+(define (vector . elts) (list->vector elts))
+vector-length
+vector-ref
+vector-set!
+(define (vector->list vec)
+  (define (loop i tail)
+    (if (< i 0)
+	tail
+	(loop (- i 1) (cons (vector-ref vec i) tail)) ))
+  (loop (- (vector-length vec) 1) '()) ) 
+(define (list->vector lst)
+  (define vec (make-vector (length lst)))
+  (define (loop i tail)
+    (if (pair? tail)
+	(begin (vector-set! vec i (car tail))
+	       (loop (+ i 1) (cdr tail)) )
+	vec ))
+  (loop 0 lst) )
+(define (vector-fill! vec obj)
+  (define (loop i)
+    (if (>= i 0)
+	(begin (vector-set! vec i obj)
+	       (loop (- i 1)) )))
+  (loop (- (vector-length vec) 1)) )
+
+;;; Sec 6.4
+procedure?
+apply ;; - primitive punts to %apply if not two args
+(define (%apply proc . argly)
+  (apply proc (%fixargs argly)) )
+(define (%fixargs argly)
+  (if (null? (cdr argly))
+      (car argly)
+      (cons (car argly) (%fixargs (cdr argly))) ))
+(define (map proc . lists)
+  (%collect-map proc (%rotatelists lists '()) '()) )
+(define (%collect-map proc rot result-tail)
+  (if (null? rot)
+      result-tail
+      (%collect-map proc
+		    (cdr rot)
+		    (cons (apply proc (car rot)) result-tail) )))
+(define (%rotatelists lists result-tail)
+  (if (null? (car lists))
+      result-tail ; FIXTHIS should check for all null lists
+      (%rotatelists (%map-cdr lists)
+		    (cons (%map-car lists) result-tail) )))
+(define (%map-cdr lists)
+  (if (null? lists) '() (cons (cdar lists) (%map-cdr (cdr lists)))) )
+(define (%map-car lists)
+  (if (null? lists) '() (cons (caar lists) (%map-car (cdr lists)))) )
+(define (for-each proc . lists)
+  (if (pair? (car lists))
+      (begin
+	(apply proc (%map-car lists))
+	(apply for-each proc (%map-cdr lists)) )))
+;; force
+call-with-current-continuation
+(define values #f)
+(define call-with-values #f)
+((lambda (magic)
+  (define (%values . lst)
+    (if (= 1 (length lst))
+        (car lst)
+        (cons magic lst) ))
+  (define (%call-with-values produce consume)
+    (define v (produce))
+    (if (and (pair? v) (eq? magic (car v)))
+        (apply consume (cdr v))
+        (consume v) ))
+  (set! values %values)
+  (set! call-with-values %call-with-values) )
+ ; The following depends on details of our call/cc primitive
+ ; and so is not portable. This gives us the magic cookie
+ ; that is used to distinguish multiple values from singletons.
+ (car (call-with-current-continuation (lambda (x) (x)))) )
+
+dynamic-wind
+;; eval
+;; scheme-report-environment
+;; null-environment
+;; interaction-environment
+
+;;; Sec 6.6.1
+(define (call-with-input-file filename proc)
+  (define port (open-input-file filename))
+  (define (finish result) (close-input-port port) result)
+  (if (port? port)
+      (finish (proc port)) ))
+(define (call-with-output-file filename proc)
+  (define port (open-output-file filename))
+  (define (finish result) (close-output-port port) result)
+  (if (port? port)
+      (finish (proc port)) ))
+input-port?
+output-port?
+current-input-port
+current-output-port
+(define (with-input-from-file filename thunk)
+  (define port (open-input-file filename))
+  (define saved (current-input-port))
+  (define (finish result)
+    (%set-current-port! 0 saved)
+    (close-input-port port)
+    result )
+  (if (port? port)
+      (begin (%set-current-port! 0 port)
+             (finish (thunk)) )))
+(define (with-output-to-file filename thunk)
+  (define port (open-output-file filename))
+  (define saved (current-output-port))
+  (define (finish result)
+    (%set-current-port! 1 saved)
+    (close-output-port port)
+    result )
+  (if (port? port)
+      (begin (%set-current-port! 1 port)
+             (finish (thunk)) )))
+(define (open-input-file filename)
+  (open-stdio-file filename "r") )
+(define (open-output-file filename)
+  (open-stdio-file filename "w") )
+(define close-input-port close-port)
+(define close-output-port close-port)
+
+;;; Sec 6.6.2
+read
+read-char
+peek-char
+eof-object?
+char-ready?
+
+;;; Sec 6.6.3
+write ; primitive trampoline calls %writer after supplying optional port
+(define %writer
+  ((lambda ()
+     (define (w-boolean b port)
+       (write-char #\# port)
+       (write-char (if b #\t #\f) port))
+     (define (w-empty-list obj port)
+       (write-char #\( port)
+       (write-char #\) port))
+     (define (w-pair p port)
+       (w-tail #\( p port) )
+     (define (w-tail d obj port)
+       "Writes the tail of the (possibly dotted) list obj, preceeded by the initial delimiter d"
+       (cond
+	((null? obj) (write-char #\) port)) ; supress d in this case
+	((pair? obj) (write-char d port)
+                     (w-any (car obj) port)
+                     (w-tail #\space (cdr obj) port) )
+	(else (write-char d port)
+            (write-char #\. port)
+	    (write-char #\space port)
+	    (w-any obj port)
+	    (write-char #\) port) )))   
+     (define *char-names* (quote ( (#\space   . space  )
+				   (#\newline . newline)
+				   )))
+     (define (w-character c port)
+       (define nm (memv c *char-names*))
+       (write-char #\# port)
+       (write-char #\\ port)
+       (if nm
+           (w-any (cdr nm) port)
+	   (write-char c port) ))
+     (define (w-number w port) (d-string (number->string w) port))
+     (define (w-string s port)
+       (write-char #\" port)
+       (d-string s port)
+       (write-char #\" port) )
+     (define anomalous-syms '(+ - ...))
+     (define (w-symbol str port)
+       (if (symbol-clean? str 0 (string-length str))
+	   (d-string str port)
+	   (begin (write-char #\# port)
+		  (w-string str port) )))
+     (define (symbol-clean? str i n)
+       (cond
+	((= i 0) (and (< i n)
+			(init-symbol-clean? (string-ref str i))
+			(symbol-clean? str 1 n) ))
+	((>= i n) #t)
+	(else (and (char-symbol-clean? (string-ref str i))
+		   (symbol-clean? str (+ i 1) n) ))))
+     (define (init-symbol-clean? c)
+       (or (char-lower-case? c) (memq c sym-init-ch)) )
+     (define sym-init-ch (string->list "!$%&*/:<=>?^_~"))
+     (define (char-symbol-clean? c)
+       (or (char-lower-case? c) (char-numeric? c) (memq c sym-ch)) )
+     (define sym-ch (string->list "+-.@!$%&*/:<=>?^_~"))
+     (define (d-string str port) (d-substring str 0 (string-length str) port))
+     (define (d-substring str i n port)
+       (if (< i n)
+	   (begin
+	     (d-char (string-ref str i) port)
+	     (d-substring str (+ i 1) n port) )))
+     (define s-esc '(#\" #\\))
+     (define (d-char c port)
+       (if (memq c s-esc)
+	   (write-char #\\ port) )
+       (write-char c port) )
+     (define (w-vector v port)
+       (write-char #\# port)
+       (w-any (vector->list v) port) )
+     (define (w-any obj port)
+       (cond
+	((boolean? obj) (w-boolean obj port))
+	((null? obj)    (w-empty-list obj port))
+	((pair? obj)    (w-pair obj port))
+	((char? obj)    (w-character obj port))
+	((number? obj)  (w-number obj port))
+	((string? obj)  (w-string obj port))
+        ((memq obj anomalous-syms) (d-string (symbol->string obj) port))
+	((symbol? obj)  (w-symbol (symbol->string obj) port))
+	((vector? obj)  (w-vector obj port))
+	(else (write-char #\? port)
+	      (write-char #\? port)
+	      (write-char #\newline port) )))
+     w-any )))
+
+(define (display obj . optport)
+  (if (null? optport)
+      (%displayer obj (current-output-port))
+      (apply %displayer obj optport) ))
+(define %displayer
+  ((lambda ()
+     (define (d-pair p port)
+       (d-tail #\( p port) )
+     (define (d-tail d obj port)
+       (cond
+        ((null? obj) (write-char #\) port)) ; supress d in this case
+        ((pair? obj) (write-char d port)
+	             (d-any (car obj) port)
+                     (d-tail #\space (cdr obj) port) )
+        (else (write-char d port)
+	      (write-char #\. port)
+	      (write-char #\space port)
+	      (d-any obj port)
+	      (write-char #\) port) )))   
+     (define (d-string str port)
+       (d-substring str 0 (string-length str) port))
+     (define (d-substring str i n port)
+       (if (< i n)
+           (begin
+             (write-char (string-ref str i) port)
+             (d-substring str (+ i 1) n port) )))
+     (define (d-vector v port)
+       (write-char #\# port)
+       (d-any (vector->list v) port) )
+     (define (d-any obj port)
+       (cond
+        ((string? obj)  (d-string obj port))
+        ((symbol? obj)  (d-string (symbol->string obj) port))
+        ((pair? obj)    (d-pair obj port))
+        ((vector? obj)  (d-vector obj port))
+        ((char? obj)    (write-char obj port))
+        (else (write obj port)) ))
+     d-any )))
+(define (newline . optport)
+  (apply write-char #\newline optport) )
+write-char
+
+;;; Sec 6.6.4
+load
+;; transcript-on
+;; transcript-off
+
+;;; REP
+(define %error-break #f)
+(define (%read-eval-print)
+  (call-with-current-continuation (lambda (x) (set! %error-break x)))
+  (%read-eval-print-loop) )
+(define (%error-handler . x)
+  (newline) (display ">>>---> ") (write x) 
+  (newline)
+  (if %error-break (%error-break #f)) )
+(define % #f)
+(define scutum> (if #f #f)) ; so pasting the prompt is harmless
+(define (%read-eval-print-loop)
+  (display "scutum> ")
+  ; (%gcollect)
+  ((lambda (exp)
+     (if (eof-object? exp)
+         (newline)
+	 (begin (set! % (interp exp))
+		(if (not (eq? % (if #f %))) ; do not try to print unspecified
+		    (begin (write %) (newline)) )
+		(%read-eval-print-loop) )))
+   (read) ))
+
+;;; end
