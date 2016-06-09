@@ -1,0 +1,23 @@
+#!/bin/sh
+
+ProcessEnumLines () {
+  while read A B ETC; do
+    echo '  k_'$B,
+  done
+}
+ProcessTableLines () {
+  while read A B ETC; do
+    echo '  &'$B,
+  done
+}
+
+echo '/* generated */'
+echo 'enum kode_name {'
+cat "$@" | grep '^Activation sc_interp_' | sed -e 's/(/ (/g' -e 's/sc_//' | ProcessEnumLines
+echo '  k_num'
+echo '};'
+echo 'static NativeCode codex[] = {'
+cat "$@" | grep '^Activation sc_interp_' | sed -e 's/(/ (/g' | ProcessTableLines
+echo '};'
+exit 0
+

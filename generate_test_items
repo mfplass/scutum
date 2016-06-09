@@ -1,0 +1,9 @@
+#!/bin/sh
+ProcessLines () {
+  while read A B ETC; do
+    echo '    { &'$B', "'$B'" },'
+  done
+}
+cat "$@" | grep '^Activation test_' | sed -e 's/(/ (/g' | ProcessLines
+exit 0
+

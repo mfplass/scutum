@@ -1,0 +1,37 @@
+#!/bin/sh
+PREFIX=scp_
+DECLTYPE=Activation
+while true; do
+  case ${1:-:-} in
+    -t) shift; DECLTYPE="${1:-void}"; shift;;
+    -p) shift; PREFIX="${1:-scp_}"; shift;;
+    *) break;;
+  esac
+done
+LispyName () {
+echo ${1}_ | sed \
+  -e "s/^${PREFIX}/_/" \
+  -e 's/_PLUS_/_+_/' \
+  -e 's/_MINUS_/_-_/' \
+  -e 's/_STAR_/_*_/' \
+  -e 's@_SLASH_@_/_@' \
+  -e 's/_LT_/_<_/' \
+  -e 's/_GT_/_>_/' \
+  -e 's/_EQ_/_=_/' \
+  -e 's/_BANG_/_!_/g' \
+  -e 's/_P_$/_?_/g' \
+  -e 's/_TO_/_->_/g' \
+  -e 's/_DOT_/_._/g' \
+  -e 's/_PCT_/_%_/g' \
+  -e 's/__/-/g' \
+  -e 's/_//g'
+}
+ProcessLines () {
+  while read A B ETC; do
+    echo '    { &'$B', "'`LispyName $B`'" },'
+  done
+}
+echo '/* generated */'
+cat "$@" | grep "^${DECLTYPE} ${PREFIX}" | sed -e 's/(/ (/g' | ProcessLines
+exit 0
+
