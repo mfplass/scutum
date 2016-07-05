@@ -508,7 +508,7 @@ static void mm_scan_object(void *obj)
                 m = MM_HIGH_SCAN >> (2 * (i % MM_MARKS_PER_WORD));
                 mb = r->mksc + (i / MM_MARKS_PER_WORD);
                 if (!((*mb) & m)) {
-                    if ((q == base + (r->ob_class->prefix_sz) + i * (r->obj_sz))) {
+                    if (q == base + (r->ob_class->prefix_sz) + i * (r->obj_sz)) {
                         (*mb) |= m;
                         (*r->ob_class->marker) (r, (uintptr_t *) q);
                     }
@@ -789,7 +789,7 @@ static void *mm_release_blk(mm_sys_blk_t * blk)
     assert(blk->left == 0);
     assert(blk->right == 0);
     if (blk == mm_freewatch) {
-        blk == mm_debugfree(blk);
+        blk = mm_debugfree(blk);
     }
     if (blk)
         (*(blk->ob_class->lba->free_fn)) (blk);
