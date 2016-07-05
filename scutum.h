@@ -65,9 +65,10 @@ typedef intptr_t Value;
 typedef Value FixnumValue;
 #define FIXNUM_P(v)        (IV(v)&1)
 #define FIXNUMS_P(v,w)     (IV(v)&IV(w)&1)
-#define FIXNUMABLE(i)      ((IV(i)^(IV(i)<<1))>=0)
-#define FIXNUM_FROM_INT(i) ((IV(i)<<1)|1)
-#define INT_FROM_FIXNUM(v) (IV(v)>>1)
+#define FIXNUMABLE(i)      (IV(UV(i)^(UV(i)<<1))>=0)
+#define FIXNUM_FROM_INT(i) IV((UV(i)<<1)|1)
+#define INT_FROM_FIXNUM(v) (IV(v)<0?IV(~((~UV(v))>>1)):(IV(v)>>1))
+/* A saner definition if c allowed it would be IV((UV(i)<<1)|1) */
 
 /***
  Characters are also immediate.  May be bigger than 8 bits
@@ -84,7 +85,7 @@ typedef Value CharValue;
  There is no really good reason to make #t one of these,
  but why not?
  ***/
-#define SPECIAL(n) IV(((n)<<4)+10)
+#define SPECIAL(n) IV((UV(n)<<4)+10)
 #define MAKE_BOOLEAN(x) SPECIAL(!!(x))
 #define HASH_F     MAKE_BOOLEAN(false)
 #define HASH_T     MAKE_BOOLEAN(true)
