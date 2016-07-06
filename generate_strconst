@@ -1,0 +1,4 @@
+#!/bin/sh
+echo static const char ${1}'[] = "(begin "'
+sed -n -e 's/ *;[^"]*$//' -e 's/[ 	]*//' -e 's/[\"]/\\&/g' -e 's/^..*$/"& "/p'
+echo '")";'

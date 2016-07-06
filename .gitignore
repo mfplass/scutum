@@ -6,6 +6,7 @@ coverage
 depend
 gentable
 interp_items.h
+lib.h
 listing.pdf
 mm_static_tables.h
 ok.txt

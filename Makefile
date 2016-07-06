@@ -5,13 +5,13 @@ SC_C = bootstrap.c main.c support.c $(PRIM_C)
 PRIM_C = initialize.c syntax.c arithmetic.c primitives.c operations.c interp.c
 ISRC = scutum.h testing.c support.c initialize.c syntax.c arithmetic.c primitives.c operations.c interp.c
 MANIFEST = Makefile LICENSE $(SCRIPTS) $(SRC) lib.scheme read.scheme
-SCRIPTS = generate_test_items generate_prim_items generate_interp_items writeifnew testify
+SCRIPTS = generate_test_items generate_prim_items generate_interp_items generate_strconst writeifnew testify
 INDENT = indent -nce -br -i4 -npro -nip -di1 -nbc -npsl -ndj
 COMMON_O = mm.o support.o initialize.o syntax.o arithmetic.o primitives.o operations.o interp.o bootstrap.o
 TARGETS = scutum tests
 EXTRATARGETS = ok.txt mm_test
 ALLTARGETS = $(TARGETS) $(EXTRATARGETS)
-GENHEADERS = primitives.h support.h mm_static_tables.h prim_items.h prim_init_items.h test_items.h interp_items.h
+GENHEADERS = primitives.h support.h mm_static_tables.h prim_items.h prim_init_items.h test_items.h interp_items.h lib.h
 
 
 default: $(TARGETS)
@@ -38,6 +38,9 @@ prim_init_items.h: $(PRIM_C)
 INTERP_C = interp.c primitives.c
 interp_items.h: $(INTERP_C)
 	./generate_interp_items $(INTERP_C) | ./writeifnew interp_items.h
+
+lib.h: lib.scheme
+	./generate_strconst lib_dot_scheme < lib.scheme | ./writeifnew lib.h
 
 support.h: $(SC_C)
 	cat $(SC_C) | \
@@ -105,7 +108,7 @@ mm.o: mm.c mm_sys.h mm.h mm_static_tables.h
 gentable.o: gentable.c mm_sys.h mm.h
 testing.o: testing.c scutum.h mm.h support.h primitives.h test_items.h
 bootstrap.o: bootstrap.c scutum.h mm.h support.h
-main.o: main.c scutum.h mm.h support.h
+main.o: main.c scutum.h mm.h support.h lib.h
 support.o: support.c mm_sys.h mm.h scutum.h support.h
 initialize.o: initialize.c scutum.h mm.h support.h primitives.h \
   prim_items.h prim_init_items.h

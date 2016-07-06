@@ -26,6 +26,7 @@
 #include <stdlib.h>
 #include <string.h>
 #include "scutum.h"
+#include "lib.h"
 
 #define Q ""
 static const char bootstrapload[] =
@@ -50,6 +51,7 @@ int main(int argc, char **argv)
   sc_eval_c_string(th, bootstrapload);
   th->outport = (PortValue) sc_stdout(th);
   th->inport = (PortValue) sc_stdin(th);
-  sc_eval_c_string(th, "(load \"lib.scheme\")");
+  sc_eval_c_string(th, lib_dot_scheme);
   sc_eval_c_string(th, "(%read-eval-print)");
+  return 0;
 }
