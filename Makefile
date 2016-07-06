@@ -105,6 +105,7 @@ depend: $(MANIFEST) $(GENHEADERS)
 ### But they need to be pasted here by hand.
 
 mm.o: mm.c mm_sys.h mm.h mm_static_tables.h
+mm_test.o: mm_test.c mm.h mm_sys.h
 gentable.o: gentable.c mm_sys.h mm.h
 testing.o: testing.c scutum.h mm.h support.h primitives.h test_items.h
 bootstrap.o: bootstrap.c scutum.h mm.h support.h
