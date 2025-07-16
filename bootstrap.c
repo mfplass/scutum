@@ -129,7 +129,7 @@ Value sc_bootstrap_reader_exp(void)
  Value eof_object = SYM("eof-object?");
  Value eq = SYM("eq?");
  Value eqv = SYM("eqv?");
- Value error = SYM("error");
+ Value error = SYM("%error-handler");
  Value finish_dotted = SYM("finish-dotted");
  Value hash_dispatch = SYM("hash-dispatch");
  Value i = SYM("i");
@@ -220,7 +220,9 @@ Value sc_bootstrap_reader_exp(void)
                              __(_legal, __(_read, port, _), _),  _),_),
               __(__(char_equal, ch, chr_COMM, _),
                    __(accum_unquote, __(next, port, _), port, _),  _),
-              __(HASH_T, __(error, LIT("illegal,token"), ch, _), _),  _),_))
+              __(HASH_T,
+                   __(read_char, port, _),
+                   __(error, LIT("illegal,token"), ch, _), _), _),  _))
     APA(__(define, __(skip_comment, ch, port, _),
            __(cond,
               __(__(eof_object, ch, _), ch, _),
