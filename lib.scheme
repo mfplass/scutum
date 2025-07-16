@@ -95,7 +95,7 @@ odd?
 /
 (define (%/ a b . lst)
   (if (null? lst)
-      (error "division fault")
+      (%error-handler "division fault")
       (/ a (apply * b lst)) ))
 
 ;(define (abs x) (if (positive? x) x (- x)))
@@ -148,7 +148,8 @@ denominator
       (rat (- /s k) (+ (* k p) op) (+ (* k q) oq) p q) )
     (or (winner (/ p q)) (ts (/ s))) )
   (cond
-   ((not (and (real? x) (real? eps) (>= eps 0))) (error 'rationalize x eps))
+   ((not (and (real? x) (real? eps) (>= eps 0)))
+    (%error-handler 'rationalize x eps) )
    ((or (inexact? x) (inexact? eps))
     (exact->inexact (rationalize (inexact->exact x) (inexact->exact eps))) )
    ((negative? x) (- (rationalize (- x) eps)))
