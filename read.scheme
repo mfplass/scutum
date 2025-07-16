@@ -46,7 +46,8 @@
 	((char=? ch #\' ) (next port) (list 'quote (%legal (%read port))))
 	((char=? ch #\` ) (next port) (list 'quasiquote (%legal (%read port))))
 	((char=? ch #\, ) (accum-unquote (next port) port))
-	(#t (error "illegal token" ch)) ))
+	(#t (read-char port)
+            (error "illegal token" ch)) ))
      (define (skip-comment ch port)
        (cond
 	((eof-object? ch) ch)
