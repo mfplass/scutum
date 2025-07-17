@@ -1678,11 +1678,13 @@ Activation scp_log(Activation act, ThData th)
     Value zero = FIXNUM_FROM_INT(0);
     Value a = (act->a);
     Value ans = zero;
+    if (a == FIXNUM_FROM_INT(1))
+        RETURN(ans);
     DEMAND_ARGS(1);
     DEMAND(NUMBER_P(a), a);
     if (RATIONAL_P(a)) {
         double x = sc_floval(th, a, 0);
-        if (x > 0.0) {
+        if (isfinite(x) && x > 0.0) {
             double y = log(x);
             ans = sc_new_Float64(false, y);
             RETURN(ans);
