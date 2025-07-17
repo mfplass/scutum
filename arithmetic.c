@@ -1353,8 +1353,8 @@ Value sc_promote(ThData th, Value a, enum type_code target)
                     if (x < 0.0)
                         x = -x;
                     while (x >= base) {
-                        if (exponent > 30)
-                            return NYI;
+                        if (exponent > 40)
+                            return NYI; /* Maybe x is infinite */
                         exponent++;
                         x /= base;
                     }
