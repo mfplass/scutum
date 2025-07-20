@@ -1697,8 +1697,6 @@ Activation scp_log(Activation act, ThData th)
             double xnorm = aa / bb;
             double logxnorm = log(xnorm);
             y = log(xnorm) + (k1 - k2) * logbase;
-            fprintf(stderr, "logdebug aa=%g; bb=%g; k1=%g; k2=%g; logbase=%g; y=%g\n",
-                    aa, bb, (double)k1, (double)k2, logbase, y);
         }
         ans = sc_new_Float64(false, y);
         RETURN(ans);
