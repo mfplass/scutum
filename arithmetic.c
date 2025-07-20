@@ -1071,8 +1071,8 @@ double sc_floval(ThData th, Value a, Int shiftamt)
             Value denom = sc_denominator(th, a);
             Int k1 = sc_bigdigits(th, numer);
             Int k2 = sc_bigdigits(th, denom);
-            double aa = sc_floval(th, sc_numerator(th, a), 1 - k1);
-            double bb = sc_floval(th, sc_denominator(th, a), 1 - k2);
+            double aa = sc_floval(th, numer, 1 - k1);
+            double bb = sc_floval(th, denom, 1 - k2);
             ans = aa / bb;
             shiftamt += (k1 - k2);
         }
