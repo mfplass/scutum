@@ -1678,17 +1678,30 @@ Activation scp_log(Activation act, ThData th)
     Value zero = FIXNUM_FROM_INT(0);
     Value a = (act->a);
     Value ans = zero;
+    DEMAND_ARGS(1);
     if (a == FIXNUM_FROM_INT(1))
         RETURN(ans);
-    DEMAND_ARGS(1);
     DEMAND(NUMBER_P(a), a);
-    if (RATIONAL_P(a)) {
+    if (RATIONAL_P(a) && !sc_negative_p(a)) {
         double x = sc_floval(th, a, 0);
-        if (isfinite(x) && x > 0.0) {
-            double y = log(x);
-            ans = sc_new_Float64(false, y);
-            RETURN(ans);
+        double y = log(x);
+        if (!(a == zero || isfinite(y) || TCODE(a) == code_float64)) {
+            /* a is either too tiny or too huge for floating point */
+            Value numer = sc_numerator(th, a);
+            Value denom = sc_denominator(th, a);
+            Int k1 = sc_bigdigits(th, numer);
+            Int k2 = sc_bigdigits(th, denom);
+            double aa = sc_floval(th, numer, 1 - k1);
+            double bb = sc_floval(th, denom, 1 - k2);
+            double logbase = log(MAX_FIX_INT + 1);
+            double xnorm = aa / bb;
+            double logxnorm = log(xnorm);
+            y = log(xnorm) + (k1 - k2) * logbase;
+            fprintf(stderr, "logdebug aa=%g; bb=%g; k1=%g; k2=%g; logbase=%g; y=%g\n",
+                    aa, bb, (double)k1, (double)k2, logbase, y);
         }
+        ans = sc_new_Float64(false, y);
+        RETURN(ans);
     }
     return sc_punt(act, th, act->codeh->i);
 }
