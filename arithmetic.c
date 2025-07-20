@@ -1080,6 +1080,7 @@ double sc_floval(ThData th, Value a, Int shiftamt)
     default:
         return (0.0 / 0.0);
     }
+    if (ans == 0.0) shiftamt = 0;
     while (shiftamt > 0) {
         ans *= base;
         shiftamt--;
