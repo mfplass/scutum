@@ -233,6 +233,7 @@ Value sc_bootstrap_reader_exp(void)
     APA(__(define, __(accum_number, ch, buf, port, _),
            __(cond,
               __(__(or, __(char_numeric, ch, _),
+                        __(char_alphabetic, ch, _),
                         __(char_ci_in, ch, _number_specials_, _),  _),
                 __(accum_number, __(next, port, _),
                                  __(cons, ch, buf, _),
@@ -365,7 +366,7 @@ Value sc_bootstrap_reader_exp(void)
     APA(__(define, _symbol_specials_,
            __(string2list, LIT("+-.@!$%&*/:<=>?^_~"),_),  _))
     APA(__(define, _number_start_, __(string2list, LIT("+-.@"), _), _))
-    APA(__(define, _number_specials_, LIT("+-.@#/esfdliebodxabcdef"), _))
+    APA(__(define, _number_specials_, LIT("+-.@#/"), _))
     APA(__(define, _named_chars_,
                    __(quote,
                       __(CONS(space, chr_space),

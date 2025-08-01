@@ -55,7 +55,7 @@
 	(#t (skip-comment (next port) port)) ))
      (define (accum-number ch buf port)
        (cond
-	((or (char-numeric? ch) (char-ci-in? ch *number-specials*))
+	((or (char-numeric? ch) (char-alphabetic? ch) (char-ci-in? ch *number-specials*))
 	 (accum-number (next port) (cons ch buf) port) )
 	(#t (number-or-peculiar (bufstr buf))) ))
      (define (symbolize ch buf port)
@@ -133,7 +133,7 @@
      (define *symbol-special-initials* (string->list "!$%&*/:<=>?^_~"))
      (define *symbol-specials*     (string->list "+-.@!$%&*/:<=>?^_~"))
      (define *number-start*        (string->list "+-.@"))
-     (define *number-specials*                   "+-.@#/esfdliebodxabcdef")
+     (define *number-specials*                   "+-.@#/")
      (define *named-chars* (quote ( (space   . #\space  )
 				    (newline . #\newline)
 				    )))
